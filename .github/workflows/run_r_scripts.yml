@@ -1,0 +1,45 @@
+name: Run R Analysis
+
+on:
+  workflow_dispatch:
+  pull_request:
+  schedule:
+    # Run daily at 02:00 UTC (approx 1pm Sydney time, covering the 11:30am release)
+    - cron: '0 2 * * *'
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libharfbuzz-dev libfribidi-dev
+
+      - name: Install R packages
+        run: |
+          install.packages(c("readabs", "tidyverse", "lubridate", "scales", "patchwork", "gt"))
+        shell: Rscript {0}
+
+      - name: Run CPI Analysis
+        run: Rscript scripts/cpi_analysis.R
+
+      - name: Run CPI Components
+        run: Rscript scripts/cpi_components.R
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update CPI analysis outputs [skip ci]"
+          file_pattern: output/*
