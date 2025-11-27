@@ -67,11 +67,33 @@ message("Downloading CPI data...")
 # Table 8 has Analytical Series (Trimmed Mean, Weighted Median).
 
 cpi_headline_raw <- read_abs("6401.0", tables = 1, show_progress_bars = FALSE)
+message("Loaded ", nrow(cpi_headline_raw), " rows from CPI headline table (6401.0, Table 1)")
+
 cpi_analytical_raw <- read_abs("6401.0", tables = 8, show_progress_bars = FALSE)
+message("Loaded ", nrow(cpi_analytical_raw), " rows from CPI analytical table (6401.0, Table 8)")
 
 # B. Monthly CPI Indicator (6484.0)
 # Table 1.
 cpi_monthly_raw <- read_abs("6484.0", tables = 1, show_progress_bars = FALSE)
+message("Loaded ", nrow(cpi_monthly_raw), " rows from monthly CPI indicator (6484.0, Table 1)")
+
+filter_table <- function(df, pattern, label) {
+  filtered <- df %>% filter(grepl(pattern, table_title, ignore.case = TRUE))
+  message(label, ": matched ", nrow(filtered), " rows using pattern '", pattern, "'")
+  if (nrow(filtered) == 0) {
+    message(label, ": no rows matched pattern; falling back to unfiltered data for diagnostics")
+    return(df)
+  }
+  filtered
+}
+
+log_series_stats <- function(df, label) {
+  if (nrow(df) == 0) {
+    message(label, ": no data after filtering")
+  } else {
+    message(label, ": ", nrow(df), " rows | date range: ", min(df$date), " -> ", max(df$date))
+  }
+}
 
 # ==============================================================================
 # 3. Tidy and Process Data
@@ -95,22 +117,34 @@ extract_series <- function(df, series_type_regex, measure_name) {
 # Monthly: "All groups CPI" (from 6484.0)
 
 # Extract
-d_headline <- cpi_headline_raw %>% 
-  filter(table_title == "Table 1. CPI: All Groups, Index Numbers and Percentage Changes") %>%
+d_headline <- cpi_headline_raw %>%
+  filter_table("All Groups, Index Numbers", "Headline table") %>%
   extract_series("All groups CPI", "Headline CPI")
 
 d_trimmed <- cpi_analytical_raw %>%
+  filter_table("Trimmed mean", "Analytical table") %>%
   extract_series("Trimmed mean", "Trimmed Mean")
 
 d_weighted <- cpi_analytical_raw %>%
+  filter_table("Weighted median", "Analytical table") %>%
   extract_series("Weighted median", "Weighted Median")
 
 d_monthly <- cpi_monthly_raw %>%
-  filter(table_title == "Table 1. Monthly CPI Indicator: All Groups, Index Numbers and Percentage Changes") %>%
+  filter_table("Monthly CPI Indicator: All Groups", "Monthly table") %>%
   extract_series("All groups CPI", "Monthly CPI Indicator")
+
+log_series_stats(d_headline, "Headline series")
+log_series_stats(d_trimmed, "Trimmed mean series")
+log_series_stats(d_weighted, "Weighted median series")
+log_series_stats(d_monthly, "Monthly CPI series")
 
 # Combine
 cpi_data <- bind_rows(d_headline, d_trimmed, d_weighted, d_monthly)
+
+message("Combined CPI data rows: ", nrow(cpi_data))
+if (nrow(cpi_data) == 0) {
+  stop("No CPI data available after filtering; cannot proceed with chart generation.")
+}
 
 # ==============================================================================
 # 4. Compute Annualised Rates
@@ -165,9 +199,16 @@ for (m in lags_m) {
 
 cpi_rates <- bind_rows(results_list)
 
+message("Computed annualised rates rows: ", nrow(cpi_rates))
+if (nrow(cpi_rates) == 0) {
+  stop("Annualised CPI rates are empty; cannot generate charts.")
+}
+
 # Filter for recent data for charts (e.g., last 5 years)
 cpi_recent <- cpi_rates %>%
   filter(date >= (max(date) - years(5)))
+
+message("Rows in recent CPI data window: ", nrow(cpi_recent))
 
 # ==============================================================================
 # 5. Create Charts
@@ -228,14 +269,16 @@ create_chart <- function(data, measure_name) {
 }
 
 measures <- unique(cpi_rates$measure)
+message("Generating plots for measures: ", paste(measures, collapse = ", "))
 plots <- list()
 
 for (m in measures) {
   plots[[m]] <- create_chart(cpi_recent, m)
-  
+
   # Save individual plot
   filename <- paste0("output/chart_", gsub(" ", "_", tolower(m)), ".png")
   ggsave(filename, plots[[m]], width = 8, height = 6)
+  message("Saved plot: ", filename)
 }
 
 # ==============================================================================
