@@ -27,6 +27,8 @@ This repository contains tools to analyse Australian CPI data and calculate pers
    Rscript scripts/cpi_analysis.R
    ```
    *Note: This script will exit early if today is not the day after a CPI release.*
+   The images and tables in `output/` are only generated when new CPI data is detected,
+   so running the script on other days will finish quickly without creating charts.
 
 3. **Generate Component Data**:
    ```bash
