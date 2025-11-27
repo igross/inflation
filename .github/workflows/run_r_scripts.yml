@@ -35,11 +35,14 @@ jobs:
           install.packages(c("readabs", "tidyverse", "lubridate", "scales", "patchwork", "gt"))
         shell: Rscript {0}
 
+      - name: Prepare output directory
+        run: mkdir -p output
+
       - name: Run CPI Analysis
-        run: Rscript scripts/cpi_analysis.R
+        run: Rscript scripts/cpi_analysis.R 2>&1 | tee output/last_workflow_run.log
 
       - name: Run CPI Components
-        run: Rscript scripts/cpi_components.R
+        run: Rscript scripts/cpi_components.R 2>&1 | tee -a output/last_workflow_run.log
 
       - name: Commit and Push Changes
         uses: stefanzweifel/git-auto-commit-action@v5
