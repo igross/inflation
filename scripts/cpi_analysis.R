@@ -48,6 +48,8 @@ cat("Today's date:", as.character(today), "\n")
 
 if (last_obs_date < expected_date) {
   message("Latest data is older than expected. New CPI data has NOT been released yet (or not found).")
+  message("Printing retrieved CPI data for verification...")
+  print(cpi_check)
   message("Exiting without error (status 0).")
   quit(save = "no", status = 0)
 }
