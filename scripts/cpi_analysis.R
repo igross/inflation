@@ -179,12 +179,15 @@ lags_m <- c(1, 3, 6, 12)
 results_list <- list()
 
 for (m in lags_m) {
-  
+
   # Create a lagged version
   lagged <- cpi_calc %>%
-    mutate(date_join = date %m+% months(m)) %>%
+    # Use past periods as the lag reference. Previously this pointed to future
+    # dates which meant the latest observation had no matching comparison and
+    # downstream tables ended up empty.
+    mutate(date_join = date %m-% months(m)) %>%
     select(measure, date_join, value_lag = value)
-  
+
   # Join
   joined <- cpi_calc %>%
     left_join(lagged, by = c("measure", "date" = "date_join")) %>%
@@ -193,7 +196,12 @@ for (m in lags_m) {
       rate_annualised = (value / value_lag)^(12 / m) - 1
     ) %>%
     filter(!is.na(rate_annualised))
-  
+
+  message(
+    "Computed ", nrow(joined), " rows for ", m, "-month annualised rate | date range: ",
+    ifelse(nrow(joined) > 0, paste(min(joined$date), max(joined$date), sep = " -> "), "<none>")
+  )
+
   results_list[[paste0("m", m)]] <- joined
 }
 
