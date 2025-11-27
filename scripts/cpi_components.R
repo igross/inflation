@@ -1,4 +1,5 @@
 library(readabs)
+library(readxl)
 library(tidyverse)
 library(lubridate)
 library(scales)
@@ -36,39 +37,42 @@ download_cpi_components <- function() {
 }
 
 download_cpi_weights <- function() {
-  message("Downloading CPI Weights (6473.0)...")
-  # 6473.0 Consumer Price Index: Weighting Pattern
-  # We need the latest weights.
-  # Note: Weights change over time. For a simple engine, we might use the latest weights.
-  # Or we should use time-varying weights if we want to be accurate historically.
-  # The prompt says "Download the official CPI weights... Build a canonical... headline CPI index".
-  # For simplicity and robustness in this task, we will likely use the LATEST weights for the persona engine
-  # applied to the index series. This is a simplification (fixed weight index) but standard for this kind of "personal inflation" app
-  # unless we want to implement chain linking.
-  # Given "recalculated CPI for different household types via reweighted components", fixed weights (latest) is the standard approach for these calculators.
-  
-  raw <- read_abs("6473.0", show_progress_bars = FALSE)
-  
-  # We need to find the table with the weights.
-  # Usually Table 1 or similar.
-  # We need to map these weights to the components in Table 7.
-  # The names should match.
-  
-  # Let's try to extract the latest weights.
-  # We'll look for the latest date in the weights dataset.
-  latest_date <- max(raw$date, na.rm = TRUE)
-  
-  weights <- raw %>%
-    filter(date == latest_date) %>%
-    # Filter for percentage weights
-    filter(unit == "Percent") %>%
-    select(series, value) %>%
-    mutate(component = gsub(";.*", "", series)) %>%
-    mutate(component = trimws(component)) %>%
-    rename(weight = value) %>%
-    # Normalize to 0-1 (ABS weights are usually in percent, e.g. 3.5)
-    mutate(weight = weight / 100)
-  
+  message("Loading CPI Weights from local workbook (Table 1)...")
+  # The repository includes "Consumer Price Index - 2025 Weighting Pattern.xlsx".
+  # Table 1 holds the percentage contribution for each expenditure class.
+  # Columns follow the pattern:
+  #   A = Group, B = Sub-group, C = Expenditure class,
+  #   D = Group weight, E = Sub-group weight, F = Expenditure class weight
+  # Downstream logic expects a tidy two-column data frame: component + weight.
+
+  weights_raw <- read_excel(
+    "Consumer Price Index - 2025 Weighting Pattern.xlsx",
+    sheet = "Table 1",
+    skip = 6,
+    col_names = FALSE
+  )
+
+  names(weights_raw)[1:6] <- c(
+    "group",
+    "sub_group",
+    "expenditure_class",
+    "weight_group",
+    "weight_sub_group",
+    "weight_class"
+  )
+
+  weights <- weights_raw %>%
+    # Drop header row and empty lines
+    filter(!(group == "Group, sub-group and expenditure class")) %>%
+    filter(if_any(c(group, sub_group, expenditure_class, weight_group, weight_sub_group, weight_class), ~ !is.na(.))) %>%
+    mutate(
+      component = coalesce(expenditure_class, sub_group, group),
+      raw_weight = coalesce(weight_class, weight_sub_group, weight_group)
+    ) %>%
+    select(component, weight = raw_weight) %>%
+    mutate(weight = as.numeric(weight) / 100) %>%
+    filter(!is.na(weight))
+
   return(weights)
 }
 
