@@ -7,6 +7,9 @@ on:
     # Run daily at 02:00 UTC (approx 1pm Sydney time, covering the 11:30am release)
     - cron: '0 2 * * *'
 
+permissions:
+  contents: write
+
 jobs:
   refresh-data:
     runs-on: macOS-latest
