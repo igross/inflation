@@ -5,6 +5,16 @@ library(scales)
 library(patchwork)
 library(gt)
 
+# Ensure an output directory exists for saving artifacts
+output_dir <- if (dir.exists("output")) {
+  "output"
+} else if (dir.exists("../output")) {
+  "../output"
+} else {
+  dir.create("output", recursive = TRUE)
+  "output"
+}
+
 # Source the components script to get the persona engine function
 # We assume the script is in ../scripts/ relative to the app, or we are running from root.
 # Shiny apps are often run from the app directory.
@@ -173,13 +183,13 @@ server <- function(input, output, session) {
   
   output$inflation_plot <- renderPlot({
     df <- combined_data()
-    
-    ggplot(df, aes(x = date, y = rate, color = measure)) +
+
+    plot_obj <- ggplot(df, aes(x = date, y = rate, color = measure)) +
       # RBA Band
       annotate("rect", xmin = as.Date(-Inf), xmax = as.Date(Inf), ymin = 0.02, ymax = 0.03,
                fill = "lightgrey", alpha = 0.3) +
       geom_hline(yintercept = 0.025, colour = "black") +
-      
+
       geom_line(size = 1.2) +
       scale_y_continuous(labels = percent_format(accuracy = 0.1)) +
       scale_color_manual(values = c("Headline CPI" = "black", "Personalised CPI" = "blue")) +
@@ -187,8 +197,18 @@ server <- function(input, output, session) {
            y = "Inflation Rate", x = NULL) +
       theme_minimal(base_size = 14) +
       theme(legend.position = "bottom")
+
+    ggsave(
+      filename = file.path(output_dir, "personal_vs_headline_inflation.png"),
+      plot = plot_obj,
+      width = 10,
+      height = 6,
+      dpi = 300
+    )
+
+    plot_obj
   })
-  
+
   output$inflation_table <- render_gt({
     df <- combined_data()
     
@@ -198,9 +218,9 @@ server <- function(input, output, session) {
       filter(date == max(date)) %>%
       select(measure, rate) %>%
       ungroup()
-    
+
     # Create table
-    latest %>%
+    table_obj <- latest %>%
       gt() %>%
       fmt_percent(columns = rate, decimals = 2) %>%
       cols_label(rate = "Current Rate") %>%
@@ -215,6 +235,14 @@ server <- function(input, output, session) {
           )(val)
         }
       )
+
+    gtsave(
+      table_obj,
+      file = file.path(output_dir, "latest_inflation_rates_table.png"),
+      expand = 10
+    )
+
+    table_obj
   })
 }
 
