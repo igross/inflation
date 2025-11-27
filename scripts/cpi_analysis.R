@@ -47,14 +47,13 @@ cat("Expected observation date (if released today):", as.character(expected_date
 cat("Today's date:", as.character(today), "\n")
 
 if (last_obs_date < expected_date) {
-  message("Latest data is older than expected. New CPI data has NOT been released yet (or not found).")
-  message("Printing retrieved CPI data for verification...")
-  print(cpi_check)
-  message("Exiting without error (status 0).")
-  quit(save = "no", status = 0)
+  message("Latest data is older than expected. Proceeding with currently available data.")
+  message("Printing retrieved CPI data snapshot for verification...")
+  print(utils::head(cpi_check, 10))
+  message("Continuing without exiting so that charts and tables are still produced.")
+} else {
+  message("New CPI data detected! Proceeding with analysis.")
 }
-
-message("New CPI data detected! Proceeding with analysis.")
 
 # ==============================================================================
 # 2. Download Data
