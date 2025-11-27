@@ -61,7 +61,13 @@ download_cpi_weights <- function() {
     "weight_class"
   )
 
+  message("Imported Table 1 with dims: ", paste(dim(weights_raw), collapse = " x "))
+  message("Table 1 column classes (first 6):")
+  print(vapply(weights_raw[1:6], class, character(1)))
+
   weights <- weights_raw %>%
+    mutate(across(starts_with("weight_"), ~ readr::parse_number(as.character(.)))) %>%
+    { msg_sample <- head(., 10); message("Sample rows post-parse:"); print(msg_sample); . } %>%
     # Drop header row and empty lines
     filter(!(group == "Group, sub-group and expenditure class")) %>%
     filter(if_any(c(group, sub_group, expenditure_class, weight_group, weight_sub_group, weight_class), ~ !is.na(.))) %>%
@@ -72,6 +78,8 @@ download_cpi_weights <- function() {
     select(component, weight = raw_weight) %>%
     mutate(weight = as.numeric(weight) / 100) %>%
     filter(!is.na(weight))
+
+  message("Prepared ", nrow(weights), " component weights from Table 1")
 
   return(weights)
 }
