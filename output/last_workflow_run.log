@@ -53,28 +53,73 @@ Finding URLs for tables corresponding to ABS catalogue 6401.0
 Attempting to download files from catalogue 6401.0, Consumer Price Index, Australia
 Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
+Loaded 513 rows from CPI headline table (6401.0, Table 1)
 Finding URLs for tables corresponding to ABS catalogue 6401.0
 Attempting to download files from catalogue 6401.0, Consumer Price Index, Australia
 Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
+Loaded 8526 rows from CPI analytical table (6401.0, Table 8)
 Finding URLs for tables corresponding to ABS catalogue 6484.0
 Attempting to download files from catalogue 6484.0, Monthly Consumer Price Index indicator
 Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
+Loaded 6887 rows from monthly CPI indicator (6484.0, Table 1)
+Headline table: matched 513 rows using pattern 'All Groups, Index Numbers'
+Analytical table: matched 0 rows using pattern 'Trimmed mean'
+Analytical table: no rows matched pattern; falling back to unfiltered data for diagnostics
+Analytical table: matched 0 rows using pattern 'Weighted median'
+Analytical table: no rows matched pattern; falling back to unfiltered data for diagnostics
+Monthly table: matched 6887 rows using pattern 'Monthly CPI Indicator: All Groups'
+Headline series: 171 rows | date range: 2024-04-01 -> 2025-10-01
+Trimmed mean series: no data after filtering
+Weighted median series: no data after filtering
+Monthly CPI series: 485 rows | date range: 2017-09-01 -> 2025-09-01
+Combined CPI data rows: 656
+Warning messages:
+1: In left_join(., lagged, by = c("measure", date = "date_join")) :
+  Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 9 of `x` matches multiple rows in `y`.
+ℹ Row 1 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.
+2: In left_join(., lagged, by = c("measure", date = "date_join")) :
+  Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 27 of `x` matches multiple rows in `y`.
+ℹ Row 1 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.
+3: In left_join(., lagged, by = c("measure", date = "date_join")) :
+  Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 52 of `x` matches multiple rows in `y`.
+ℹ Row 1 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.
+4: In left_join(., lagged, by = c("measure", date = "date_join")) :
+  Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 103 of `x` matches multiple rows in `y`.
+ℹ Row 1 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.
+Computed annualised rates rows: 10339
+Rows in recent CPI data window: 8060
+Generating plots for measures: Headline CPI, Monthly CPI Indicator
+Saved plot: output/chart_headline_cpi.png
+Saved plot: output/chart_monthly_cpi_indicator.png
 Warning message:
-There was 1 warning in `filter()`.
-ℹ In argument: `date >= (max(date) - years(5))`.
-Caused by warning in `max.default()`:
-! no non-missing arguments to max; returning -Inf 
+Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead. 
 Warning message:
-There was 1 warning in `filter()`.
-ℹ In argument: `date == max(date)`.
-Caused by warning in `max.default()`:
-! no non-missing arguments to max; returning -Inf 
-Warning message:
-In max.default(numeric(0), na.rm = FALSE) :
-  no non-missing arguments to max; returning -Inf
-Analysis complete. Outputs saved to output/
+Values from `rate_annualised` are not uniquely identified; output will contain
+list-cols.
+• Use `values_fn = list` to suppress this warning.
+• Use `values_fn = {summary_fun}` to summarise duplicates.
+• Use the following dplyr code to identify duplicates.
+  {data} |>
+  dplyr::summarise(n = dplyr::n(), .by = c(measure, period)) |>
+  dplyr::filter(n > 1L) 
+Error in pmin(0.04, x) : 'list' object cannot be coerced to type 'double'
+Calls: %>% -> data_color -> color_fn -> pmax -> pmin
+Execution halted
 Environment variable 'R_READABS_PATH' is unset. Downloaded files will be saved in a temporary directory.
 You can set 'R_READABS_PATH' at any time. To set it for the rest of this session, use
 	Sys.setenv(R_READABS_PATH = <path>)
