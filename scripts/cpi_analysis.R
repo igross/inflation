@@ -209,6 +209,22 @@ if (nrow(cpi_data) == 0) {
   stop("No CPI data available after filtering; cannot proceed with chart generation.")
 }
 
+# Ensure each measure/date pair is unique to avoid ambiguous joins and list-columns
+# when reshaping. If multiple series (e.g., different cities) are present for the
+# same measure/date, we keep the first observation but log how many duplicates were
+# collapsed.
+dup_summary <- cpi_data %>%
+  count(measure, date) %>%
+  filter(n > 1)
+
+if (nrow(dup_summary) > 0) {
+  message(
+    "Detected ", sum(dup_summary$n - 1),
+    " duplicate observations across ", nrow(dup_summary),
+    " measure/date combinations; keeping the first value for each."
+  )
+}
+
 # ==============================================================================
 # 4. Compute Annualised Rates
 # ==============================================================================
@@ -233,8 +249,9 @@ calc_annualised <- function(x, m, freq_months) {
 
 # We'll do a robust join approach to handle gaps/frequency
 cpi_calc <- cpi_data %>%
-  select(measure, date, value) %>%
-  distinct()
+  group_by(measure, date) %>%
+  arrange(measure, date) %>%
+  summarise(value = first(value), .groups = "drop")
 
 # Define lags in months
 lags_m <- c(1, 3, 6, 12)
@@ -363,10 +380,16 @@ for (m in measures) {
 
 # Get latest date for each measure
 latest_data <- cpi_rates %>%
-  group_by(measure) %>%
+  group_by(measure, months) %>%
   filter(date == max(date)) %>%
-  ungroup() %>%
-  select(measure, months, rate_annualised) %>%
+  summarise(
+    rate_annualised = if (all(is.na(rate_annualised))) {
+      NA_real_
+    } else {
+      first(na.omit(rate_annualised))
+    },
+    .groups = "drop"
+  ) %>%
   mutate(period = paste0(months, "m_annualised")) %>%
   select(-months) %>%
   pivot_wider(names_from = period, values_from = rate_annualised)
