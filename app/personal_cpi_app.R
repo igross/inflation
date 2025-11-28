@@ -6,76 +6,13 @@ library(patchwork)
 library(gt)
 
 # Ensure an output directory exists for saving artifacts
-output_dir <- if (dir.exists("output")) {
-  message("Using local output directory: ./output")
-  "output"
-} else if (dir.exists("../output")) {
-  message("Using parent output directory: ../output")
-  "../output"
-} else {
-  dir.create("output", recursive = TRUE)
-  message("Created missing output directory at ./output")
-  "output"
-}
-
-log_save_intent <- function(path, label) {
-  dir_path <- dirname(path)
-  can_write <- file.access(dir_path, 2) == 0
-  message(
-    "[", label, "] Preparing to save file: ", path,
-    " | dir exists: ", dir.exists(dir_path),
-    " | writable: ", can_write,
-    " | absolute dir: ", normalizePath(dir_path, winslash = "/", mustWork = FALSE)
-  )
-}
-
-log_save_result <- function(path, label, success) {
-  if (!success) {
-    message("[", label, "] Save failed; file not written. Checked path: ", path)
-    return(invisible(FALSE))
-  }
-
-  if (file.exists(path)) {
-    info <- file.info(path)
-    message(
-      "[", label, "] Save succeeded | size bytes: ", info$size,
-      " | last modified: ", info$mtime,
-      " | absolute path: ", normalizePath(path, winslash = "/", mustWork = FALSE)
-    )
+output_dir <- "output"
+if (!dir.exists(output_dir)) {
+  if (dir.exists("../output")) {
+    output_dir <- "../output"
   } else {
-    message(
-      "[", label, "] Save reported success but file is missing at ", path,
-      ". Check directory permissions or relative paths."
-    )
+    dir.create(output_dir, recursive = TRUE)
   }
-}
-
-save_plot_with_logging <- function(plot_obj, filename, ...) {
-  log_save_intent(filename, "plot")
-
-  success <- tryCatch({
-    ggsave(filename, plot_obj, ...)
-    TRUE
-  }, error = function(e) {
-    message("[plot] Error while saving ", filename, ": ", e$message)
-    FALSE
-  })
-
-  log_save_result(filename, "plot", success)
-}
-
-save_table_with_logging <- function(gt_obj, filename, ...) {
-  log_save_intent(filename, "table")
-
-  success <- tryCatch({
-    gtsave(gt_obj, filename, ...)
-    TRUE
-  }, error = function(e) {
-    message("[table] Error while saving ", filename, ": ", e$message)
-    FALSE
-  })
-
-  log_save_result(filename, "table", success)
 }
 
 # Source the components script to get the persona engine function
@@ -92,27 +29,16 @@ if (file.exists("scripts/cpi_components.R")) {
 }
 
 # Load Data
-# We expect output/cpi_data.rds to exist.
-data_path <- "output/cpi_data.rds"
-if (!file.exists(data_path)) {
-  if (file.exists("../output/cpi_data.rds")) {
-    data_path <- "../output/cpi_data.rds"
-  } else {
-    # If data doesn't exist, we might need to download it (first run)
-    # But for the app, we'll just warn or try to run the download function if loaded.
-    message("Data not found. Attempting to download...")
-    if (exists("download_cpi_components")) {
-      # We need to run the main block logic manually
-      components_df <- download_cpi_components()
-      weights_df <- download_cpi_weights()
-      # ... (simplified processing for fallback)
-      # Ideally we just stop and say "Run the data prep script first"
-      stop("Please run scripts/cpi_components.R to generate data first.")
-    }
-  }
+data_path <- if (file.exists("output/cpi_data.rds")) {
+  "output/cpi_data.rds"
+} else if (file.exists("../output/cpi_data.rds")) {
+  "../output/cpi_data.rds"
+} else {
+  stop("Please run scripts/cpi_components.R to generate output/cpi_data.rds before launching the app.")
 }
 
 cpi_data <- readRDS(data_path)
+cpi_data$components$date <- as.Date(cpi_data$components$date)
 components <- cpi_data$components
 weights <- cpi_data$weights
 canonical_cpi <- cpi_data$canonical_cpi
@@ -171,78 +97,41 @@ ui <- fluidPage(
 # ==============================================================================
 
 server <- function(input, output, session) {
-  
-  # Reactive: Calculate Personal Weights
-  personal_weights <- reactive({
-    # Depend on Update button
-    input$update
-    
-    # Isolate inputs to wait for button
-    isolate({
-      toggles <- list(
-        vegetarian = input$vegetarian,
-        vegan = input$vegan,
-        transport = input$transport,
-        housing = input$housing,
-        traveller = input$traveller,
-        family = input$family,
-        smoker = input$smoker,
-        energy = input$energy
-      )
-      
-      calculate_persona_weights(weights, toggles)
-    })
-  })
-  
-  # Reactive: Calculate Personal CPI Index
-  personal_index <- reactive({
-    w <- personal_weights()
-    
-    # Sum(w * I)
-    components %>%
-      left_join(w, by = "component") %>%
+
+  combined_data <- eventReactive(input$update, {
+    toggles <- list(
+      vegetarian = input$vegetarian,
+      vegan = input$vegan,
+      transport = input$transport,
+      housing = input$housing,
+      traveller = input$traveller,
+      family = input$family,
+      smoker = input$smoker,
+      energy = input$energy
+    )
+
+    personal_weights <- calculate_persona_weights(weights, toggles)
+
+    personal_index <- components %>%
+      left_join(personal_weights, by = "component") %>%
       group_by(date) %>%
       summarise(
         value = sum(value * weight, na.rm = TRUE),
         measure = "Personalised CPI"
       ) %>%
       ungroup()
-  })
-  
-  # Reactive: Combine with Headline and Calculate Inflation
-  combined_data <- reactive({
-    p_idx <- personal_index()
-    h_idx <- canonical_cpi %>% mutate(measure = "Headline CPI")
-    
-    # Combine
-    both <- bind_rows(h_idx, p_idx)
-    
-    # Calculate Annualised Inflation (12-month for the main chart usually, or 3-month?)
-    # Prompt: "Plot headline CPI annualised inflation... Plot personalised CPI annualised inflation"
-    # Usually "Inflation" implies Annual (12-month) change, but the prompt asks for annualised rates.
-    # Let's show 12-month Annualised (which is just Year-ended percentage change).
-    # Or maybe 3-month annualised?
-    # "Plot headline CPI annualised inflation... Plot personalised CPI annualised inflation on the same time axis."
-    # Given the volatility of 1-month/3-month, 12-month is standard for "Inflation".
-    # But Section 3 asks for 1m, 3m, 6m, 12m.
-    # Let's plot the 12-month rate as the primary "Inflation" metric, or maybe allow user to select?
-    # I'll stick to 12-month for the main chart as it's the standard definition of "Inflation".
-    
-    # Calculate 12-month change
-    # (P_t / P_{t-12}) - 1
-    # Note: Data is Quarterly. So lag is 4 quarters (12 months).
-    # If data is monthly, lag is 12.
-    # The components data (Table 7) is Quarterly.
-    
+
+    both <- bind_rows(canonical_cpi %>% mutate(measure = "Headline CPI"), personal_index)
+
     both %>%
       group_by(measure) %>%
       mutate(
-        lag_val = lag(value, 4), # Assuming Quarterly
-        rate = (value / lag_val) - 1 # Simple % change over 1 year
+        lag_val = lag(value, 4),
+        rate = (value / lag_val) - 1
       ) %>%
       filter(!is.na(rate)) %>%
-      filter(date >= (max(date) - years(5))) # Last 5 years
-  })
+      filter(date >= (max(date) - years(5)))
+  }, ignoreNULL = FALSE)
   
   output$inflation_plot <- renderPlot({
     df <- combined_data()
@@ -262,14 +151,7 @@ server <- function(input, output, session) {
       theme(legend.position = "bottom")
 
     target_file <- file.path(output_dir, "personal_vs_headline_inflation.png")
-    message("Attempting to save headline vs personal inflation plot to ", target_file)
-    save_plot_with_logging(
-      plot_obj,
-      filename = target_file,
-      width = 10,
-      height = 6,
-      dpi = 300
-    )
+    try(ggsave(target_file, plot_obj, width = 10, height = 6, dpi = 300), silent = TRUE)
 
     plot_obj
   })
@@ -302,12 +184,7 @@ server <- function(input, output, session) {
       )
 
     table_file <- file.path(output_dir, "latest_inflation_rates_table.png")
-    message("Attempting to save latest inflation rates table to ", table_file)
-    save_table_with_logging(
-      table_obj,
-      filename = table_file,
-      expand = 10
-    )
+    try(gtsave(table_obj, table_file, expand = 10), silent = TRUE)
 
     table_obj
   })
