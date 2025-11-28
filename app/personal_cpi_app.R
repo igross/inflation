@@ -7,12 +7,75 @@ library(gt)
 
 # Ensure an output directory exists for saving artifacts
 output_dir <- if (dir.exists("output")) {
+  message("Using local output directory: ./output")
   "output"
 } else if (dir.exists("../output")) {
+  message("Using parent output directory: ../output")
   "../output"
 } else {
   dir.create("output", recursive = TRUE)
+  message("Created missing output directory at ./output")
   "output"
+}
+
+log_save_intent <- function(path, label) {
+  dir_path <- dirname(path)
+  can_write <- file.access(dir_path, 2) == 0
+  message(
+    "[", label, "] Preparing to save file: ", path,
+    " | dir exists: ", dir.exists(dir_path),
+    " | writable: ", can_write,
+    " | absolute dir: ", normalizePath(dir_path, winslash = "/", mustWork = FALSE)
+  )
+}
+
+log_save_result <- function(path, label, success) {
+  if (!success) {
+    message("[", label, "] Save failed; file not written. Checked path: ", path)
+    return(invisible(FALSE))
+  }
+
+  if (file.exists(path)) {
+    info <- file.info(path)
+    message(
+      "[", label, "] Save succeeded | size bytes: ", info$size,
+      " | last modified: ", info$mtime,
+      " | absolute path: ", normalizePath(path, winslash = "/", mustWork = FALSE)
+    )
+  } else {
+    message(
+      "[", label, "] Save reported success but file is missing at ", path,
+      ". Check directory permissions or relative paths."
+    )
+  }
+}
+
+save_plot_with_logging <- function(plot_obj, filename, ...) {
+  log_save_intent(filename, "plot")
+
+  success <- tryCatch({
+    ggsave(filename, plot_obj, ...)
+    TRUE
+  }, error = function(e) {
+    message("[plot] Error while saving ", filename, ": ", e$message)
+    FALSE
+  })
+
+  log_save_result(filename, "plot", success)
+}
+
+save_table_with_logging <- function(gt_obj, filename, ...) {
+  log_save_intent(filename, "table")
+
+  success <- tryCatch({
+    gtsave(gt_obj, filename, ...)
+    TRUE
+  }, error = function(e) {
+    message("[table] Error while saving ", filename, ": ", e$message)
+    FALSE
+  })
+
+  log_save_result(filename, "table", success)
 }
 
 # Source the components script to get the persona engine function
@@ -198,9 +261,11 @@ server <- function(input, output, session) {
       theme_minimal(base_size = 14) +
       theme(legend.position = "bottom")
 
-    ggsave(
-      filename = file.path(output_dir, "personal_vs_headline_inflation.png"),
-      plot = plot_obj,
+    target_file <- file.path(output_dir, "personal_vs_headline_inflation.png")
+    message("Attempting to save headline vs personal inflation plot to ", target_file)
+    save_plot_with_logging(
+      plot_obj,
+      filename = target_file,
       width = 10,
       height = 6,
       dpi = 300
@@ -236,9 +301,11 @@ server <- function(input, output, session) {
         }
       )
 
-    gtsave(
+    table_file <- file.path(output_dir, "latest_inflation_rates_table.png")
+    message("Attempting to save latest inflation rates table to ", table_file)
+    save_table_with_logging(
       table_obj,
-      file = file.path(output_dir, "latest_inflation_rates_table.png"),
+      filename = table_file,
       expand = 10
     )
 

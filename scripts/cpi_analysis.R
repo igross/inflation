@@ -8,6 +8,69 @@ library(gt)
 # Ensure output directory exists
 if (!dir.exists("output")) {
   dir.create("output")
+  message("Created missing output directory at './output'")
+} else {
+  message("Using existing output directory at './output'")
+}
+
+log_save_intent <- function(path, label) {
+  dir_path <- dirname(path)
+  can_write <- file.access(dir_path, 2) == 0
+  message(
+    "[", label, "] Preparing to save file: ", path,
+    " | dir exists: ", dir.exists(dir_path),
+    " | writable: ", can_write,
+    " | absolute dir: ", normalizePath(dir_path, winslash = "/", mustWork = FALSE)
+  )
+}
+
+log_save_result <- function(path, label, success) {
+  if (!success) {
+    message("[", label, "] Save failed; file not written. Checked path: ", path)
+    return(invisible(FALSE))
+  }
+
+  if (file.exists(path)) {
+    info <- file.info(path)
+    message(
+      "[", label, "] Save succeeded | size bytes: ", info$size,
+      " | last modified: ", info$mtime,
+      " | absolute path: ", normalizePath(path, winslash = "/", mustWork = FALSE)
+    )
+  } else {
+    message(
+      "[", label, "] Save reported success but file is missing at ", path,
+      ". Check directory permissions or relative paths."
+    )
+  }
+}
+
+save_plot_with_logging <- function(plot_obj, filename, ...) {
+  log_save_intent(filename, "plot")
+
+  success <- tryCatch({
+    ggsave(filename, plot_obj, ...)
+    TRUE
+  }, error = function(e) {
+    message("[plot] Error while saving ", filename, ": ", e$message)
+    FALSE
+  })
+
+  log_save_result(filename, "plot", success)
+}
+
+save_table_with_logging <- function(gt_obj, filename, ...) {
+  log_save_intent(filename, "table")
+
+  success <- tryCatch({
+    gtsave(gt_obj, filename, ...)
+    TRUE
+  }, error = function(e) {
+    message("[table] Error while saving ", filename, ": ", e$message)
+    FALSE
+  })
+
+  log_save_result(filename, "table", success)
 }
 
 # ==============================================================================
@@ -283,10 +346,10 @@ plots <- list()
 for (m in measures) {
   plots[[m]] <- create_chart(cpi_recent, m)
 
-  # Save individual plot
+  # Save individual plot with detailed logging
   filename <- paste0("output/chart_", gsub(" ", "_", tolower(m)), ".png")
-  ggsave(filename, plots[[m]], width = 8, height = 6)
-  message("Saved plot: ", filename)
+  message("Attempting to save chart for measure '", m, "' to ", filename)
+  save_plot_with_logging(plots[[m]], filename, width = 8, height = 6)
 }
 
 # ==============================================================================
@@ -400,7 +463,8 @@ cpi_table <- latest_data %>%
   )
 
 # Save table
-gtsave(cpi_table, "output/cpi_annualised_summary.html")
+message("Attempting to save CPI annualised summary table to output/cpi_annualised_summary.html")
+save_table_with_logging(cpi_table, "output/cpi_annualised_summary.html")
 # Also save CSV
 write_csv(latest_data, "output/cpi_annualised_summary.csv")
 
