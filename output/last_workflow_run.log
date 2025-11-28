@@ -22,6 +22,7 @@ The following object is masked from ‘package:readr’:
 
     col_factor
 
+Using existing output directory at './output'
 Checking latest CPI release date...
 Finding URLs for tables corresponding to ABS catalogue 6484.0
 Attempting to download files from catalogue 6484.0, Monthly Consumer Price Index indicator
@@ -107,8 +108,12 @@ Warning messages:
 Computed annualised rates rows: 10339
 Rows in recent CPI data window: 7780
 Generating plots for measures: Headline CPI, Monthly CPI Indicator
-Saved plot: output/chart_headline_cpi.png
-Saved plot: output/chart_monthly_cpi_indicator.png
+Attempting to save chart for measure 'Headline CPI' to output/chart_headline_cpi.png
+[plot] Preparing to save file: output/chart_headline_cpi.png | dir exists: TRUE | writable: TRUE | absolute dir: /Users/runner/work/inflation/inflation/output
+[plot] Save succeeded | size bytes: 64878 | last modified: 2025-11-28 00:04:49.566876 | absolute path: /Users/runner/work/inflation/inflation/output/chart_headline_cpi.png
+Attempting to save chart for measure 'Monthly CPI Indicator' to output/chart_monthly_cpi_indicator.png
+[plot] Preparing to save file: output/chart_monthly_cpi_indicator.png | dir exists: TRUE | writable: TRUE | absolute dir: /Users/runner/work/inflation/inflation/output
+[plot] Save succeeded | size bytes: 92484 | last modified: 2025-11-28 00:04:49.802842 | absolute path: /Users/runner/work/inflation/inflation/output/chart_monthly_cpi_indicator.png
 Warning message:
 Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
 ℹ Please use `linewidth` instead. 
