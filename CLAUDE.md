@@ -10,11 +10,13 @@ This repository contains tools for analyzing Australian Consumer Price Index (CP
 inflation/
 ├── scripts/
 │   ├── cpi_analysis.R       # Main analysis script - downloads data, calculates rates, generates charts
-│   └── cpi_components.R     # CPI components and weights, contains Persona Engine
+│   ├── cpi_components.R     # CPI components and weights, contains Persona Engine
+│   └── interactive_charts.py # Python script for interactive Plotly visualizations
 ├── app/
 │   └── personal_cpi_app.R   # Interactive Shiny web application
 ├── output/                   # Generated artifacts (charts, tables, data files)
-│   ├── chart_*.png          # Inflation charts
+│   ├── chart_*.png          # Static inflation charts (PNG)
+│   ├── interactive_*.html   # Interactive Plotly charts (HTML)
 │   ├── cpi_annualised_summary.csv/html  # Summary tables
 │   ├── cpi_data.rds         # Processed CPI data
 │   └── persona_cpi_indices.csv
@@ -28,6 +30,8 @@ inflation/
 
 - **R**: Primary language for data analysis
 - **Required R packages**: `readabs`, `tidyverse`, `lubridate`, `scales`, `patchwork`, `gt`, `shiny`, `readxl`
+- **Python 3**: Used for interactive chart generation
+- **Required Python packages**: `plotly`, `pandas`, `numpy`
 - **Data Source**: Australian Bureau of Statistics via `readabs` package
 - **Automation**: GitHub Actions (runs daily at 02:00 UTC / ~1pm Sydney time)
 
@@ -51,6 +55,12 @@ inflation/
 - Supports household toggles: vegetarian/vegan, transport mode, housing status, etc.
 - Requires `output/cpi_data.rds` to exist (run `cpi_components.R` first)
 
+### interactive_charts.py
+- Generates interactive HTML charts using Plotly
+- Creates 5 chart types: inflation trend, comparison bar, persona comparison, heatmap, and combined dashboard
+- Output files are self-contained HTML with embedded Plotly.js
+- Can be run independently after R analysis completes
+
 ## Development Workflow
 
 ### Running Locally
@@ -59,11 +69,17 @@ inflation/
 # Install R dependencies
 Rscript -e 'install.packages(c("readabs", "tidyverse", "lubridate", "scales", "patchwork", "gt", "shiny", "readxl"))'
 
+# Install Python dependencies
+pip install plotly pandas numpy
+
 # Run main analysis
 Rscript scripts/cpi_analysis.R
 
 # Generate component data (required for Shiny app)
 Rscript scripts/cpi_components.R
+
+# Generate interactive charts
+python3 scripts/interactive_charts.py
 
 # Run Shiny app
 Rscript -e 'shiny::runApp("app/personal_cpi_app.R")'
@@ -93,14 +109,34 @@ Charts display the Reserve Bank of Australia's inflation target band (2-3%) with
 
 ## Data Flow
 
-1. `cpi_analysis.R` downloads raw ABS data and generates charts/tables
+1. `cpi_analysis.R` downloads raw ABS data and generates static charts/tables
 2. `cpi_components.R` processes component-level data and saves to `output/cpi_data.rds`
-3. Shiny app loads `cpi_data.rds` and uses `calculate_persona_weights()` for calculations
+3. `interactive_charts.py` reads CSV output and generates interactive HTML visualizations
+4. Shiny app loads `cpi_data.rds` and uses `calculate_persona_weights()` for calculations
+
+## Interactive Charts
+
+The `interactive_charts.py` script generates the following HTML visualizations:
+
+| File | Description |
+|------|-------------|
+| `interactive_inflation_trend.html` | Time series of all CPI measures with RBA target band |
+| `interactive_comparison_bar.html` | Grouped bar chart comparing annualised rates across periods |
+| `interactive_persona_comparison.html` | Bar chart showing inflation by household type |
+| `interactive_heatmap.html` | Color-coded heatmap of rates by measure and period |
+| `interactive_dashboard.html` | Combined dashboard with all charts in one view |
+
+All interactive charts feature:
+- Hover tooltips with detailed data
+- Zoom and pan capabilities
+- Legend toggling to show/hide series
+- Export to PNG functionality (via Plotly toolbar)
 
 ## File Conventions
 
 - Output files go in `output/` directory
-- Charts are named `chart_<measure_name>.png`
+- Static charts are named `chart_<measure_name>.png`
+- Interactive charts are named `interactive_<chart_type>.html`
 - Data files use `.rds` format for R serialization
 - Summary tables are generated in both CSV and HTML formats
 
