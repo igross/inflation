@@ -30,7 +30,7 @@ Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
 Latest CPI observation date: 2025-09-01 
 Expected observation date (if released today): 2026-01-01 
-Today's date: 2026-02-02 
+Today's date: 2026-02-03 
 Latest data is older than expected. Proceeding with currently available data.
 Printing retrieved CPI data snapshot for verification...
 # A tibble: 10 × 12
