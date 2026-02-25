@@ -30,7 +30,7 @@ Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
 Latest CPI observation date: 2025-09-01 
 Expected observation date (if released today): 2026-01-01 
-Today's date: 2026-02-24 
+Today's date: 2026-02-25 
 Latest data is older than expected. Proceeding with currently available data.
 Printing retrieved CPI data snapshot for verification...
 # A tibble: 10 × 12
@@ -54,18 +54,18 @@ Finding URLs for tables corresponding to ABS catalogue 6401.0
 Attempting to download files from catalogue 6401.0, Consumer Price Index, Australia
 Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
-Loaded 567 rows from CPI headline table (6401.0, Table 1)
+Loaded 594 rows from CPI headline table (6401.0, Table 1)
 Finding URLs for tables corresponding to ABS catalogue 6401.0
 Attempting to download files from catalogue 6401.0, Consumer Price Index, Australia
 Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
-Loaded 8700 rows from CPI analytical table (6401.0, Table 8)
+Loaded 8787 rows from CPI analytical table (6401.0, Table 8)
 Finding URLs for tables corresponding to ABS catalogue 6484.0
 Attempting to download files from catalogue 6484.0, Monthly Consumer Price Index indicator
 Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
 Loaded 6887 rows from monthly CPI indicator (6484.0, Table 1)
-Headline series: 189 rows | date range: 2024-04-01 -> 2025-12-01
+Headline series: 198 rows | date range: 2024-04-01 -> 2026-01-01
 Trimmed mean series: 0 rows | date range: Inf -> -Inf
 Warning messages:
 1: In min.default(numeric(0), na.rm = FALSE) :
@@ -79,13 +79,13 @@ Warning messages:
 2: In max.default(numeric(0), na.rm = FALSE) :
   no non-missing arguments to max; returning -Inf
 Monthly CPI series: 485 rows | date range: 2017-09-01 -> 2025-09-01
-Combined CPI data rows: 674
-Detected 556 duplicate observations across 118 measure/date combinations; keeping the first value for each.
-Computed 116 rows for 1-month annualised rate | date range: 2017-09-01 -> 2025-11-01
-Computed 112 rows for 3-month annualised rate | date range: 2017-09-01 -> 2025-09-01
-Computed 106 rows for 6-month annualised rate | date range: 2017-09-01 -> 2025-06-01
-Computed 94 rows for 12-month annualised rate | date range: 2017-09-01 -> 2024-12-01
-Computed annualised rates rows: 428
+Combined CPI data rows: 683
+Detected 564 duplicate observations across 119 measure/date combinations; keeping the first value for each.
+Computed 117 rows for 1-month annualised rate | date range: 2017-09-01 -> 2025-12-01
+Computed 113 rows for 3-month annualised rate | date range: 2017-09-01 -> 2025-10-01
+Computed 107 rows for 6-month annualised rate | date range: 2017-09-01 -> 2025-07-01
+Computed 95 rows for 12-month annualised rate | date range: 2017-09-01 -> 2025-01-01
+Computed annualised rates rows: 432
 Rows in recent CPI data window: 276
 Generating plots for measures: Headline CPI, Monthly CPI Indicator
 Attempting to save chart for measure 'Headline CPI' to output/chart_headline_cpi.png
