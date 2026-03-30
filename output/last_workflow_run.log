@@ -30,7 +30,7 @@ Extracting data from downloaded spreadsheets
 Tidying data from imported ABS spreadsheets
 Latest CPI observation date: 2025-09-01 
 Expected observation date (if released today): NA 
-Today's date: 2026-03-29 
+Today's date: 2026-03-30 
 Error in if (last_obs_date < expected_date) { : 
   missing value where TRUE/FALSE needed
 Execution halted
