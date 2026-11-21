@@ -181,7 +181,9 @@ if (sys.nframe() == 0) {
 
   weights <- weights_raw %>%
     mutate(across(starts_with("weight_"), ~ readr::parse_number(as.character(.)))) %>%
-    filter(!(group == "Group, sub-group and expenditure class")) %>%
+    # Keep rows with a blank `group` cell (sub-groups and expenditure classes);
+    # a bare `group != ...` is NA for them and filter() would drop them all.
+    filter(is.na(group) | group != "Group, sub-group and expenditure class") %>%
     filter(if_any(c(group, sub_group, expenditure_class, weight_group, weight_sub_group, weight_class), ~ !is.na(.))) %>%
     mutate(
       component = coalesce(expenditure_class, sub_group, group),
