@@ -42,6 +42,33 @@ This repository contains tools to analyse Australian CPI data and calculate pers
    shiny::runApp("app/personal_cpi_app.R")
    ```
 
+## Testing
+
+The test suite runs the whole pipeline offline against seeded, deterministic
+synthetic data - no ABS download is made and the committed `output/` folder is
+never touched.
+
+```bash
+# from the repository root
+Rscript -e 'install.packages(c("readabs","readxl","tidyverse","lubridate","scales","patchwork","gt","shiny","testthat","openxlsx","png","xml2"))'
+Rscript tests/testthat.R
+```
+
+- `tests/synthetic/generate_synthetic_data.R` builds readabs-shaped tibbles for
+  6401.0 Tables 1, 7 and 8 and 6484.0 Table 1, plus a synthetic
+  `Consumer Price Index - 2025 Weighting Pattern.xlsx` with the ABS layout.
+- `tests/synthetic/mock_profile.R` is used as `R_PROFILE_USER` for the script
+  subprocesses; it replaces `readabs::read_abs()` with the synthetic version when
+  the scripts call `library(readabs)`. Proxy variables point at a dead port so
+  any stray network call fails.
+- `tests/testthat/test-pipeline-e2e.R` copies `scripts/` and `app/` into a temp
+  sandbox, runs `cpi_analysis.R` and `cpi_components.R` there with `Rscript`, and
+  checks every export (the four chart PNGs, `cpi_annualised_summary.csv`/`.html`,
+  `cpi_data.rds`, `persona_cpi_indices.csv`) plus the Shiny app's server outputs.
+- `tests/testthat/test-persona-weights.R` unit-tests `calculate_persona_weights()`.
+
+The tests also run on every pull request (`.github/workflows/tests.yml`).
+
 ## Methodology
 
 - **Annualisation**: Inflation rates are annualised using the formula `(1 + Δ_m)^(12 / m) - 1`.
